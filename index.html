@@ -1,0 +1,1802 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PELE - Personalized English Learning Experience (Functional)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f7f9fc;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            padding: 2rem 1rem;
+        }
+        .app-container {
+            background-color: #ffffff;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+            max-width: 4xl;
+            width: 100%;
+            border-radius: 1rem;
+            padding: 2rem 1.5rem;
+            /* NEW: Required for positioning the popup */
+            position: relative; 
+        }
+
+        /* --- Step 1/2 Styling (UPDATED from prot_2) --- */
+        .card-topic, .card-format {
+            cursor: pointer;
+            transition: all 0.3s ease-in-out;
+            user-select: none;
+            border: 3px solid transparent;
+            background-color: #ffffff;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            /* Important for absolute positioning of priority number */
+            position: relative; 
+        }
+        .card-topic:hover, .card-format:hover {
+            box-shadow: 0 5px 20px rgba(79, 70, 229, 0.2);
+        }
+        .card-topic.selected, .card-format.selected {
+            border-color: #4f46e5; /* Indigo-600 */
+            background-color: #eef2ff; /* Indigo-50 */
+            box-shadow: 0 5px 20px rgba(79, 70, 229, 0.3);
+        }
+        
+        /* Priority number style for selected topic cards */
+        .priority-number {
+            position: absolute;
+            top: -10px;
+            right: -10px;
+            width: 24px;
+            height: 24px;
+            background-color: #4f46e5;
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            font-weight: bold;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        /* --- Step 3 Styling (CEFR Slider) --- */
+        .slider-thumb::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #4f46e5; /* Indigo-600 */
+            cursor: pointer;
+            box-shadow: 0 0 5px rgba(0, 0, 0, 0.2);
+            margin-top: -8px; /* Center the thumb vertically */
+        }
+        .slider-thumb::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #4f46e5;
+            cursor: pointer;
+            box-shadow: 0 0 5px rgba(0, 0, 0, 0.2);
+        }
+
+        /* === START: NEW STYLE FOR STEP 3 COUNTER === */
+        .counter-btn {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background-color: #e0e7ff; /* Indigo 100 */
+            color: #4f46e5; /* Indigo 600 */
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+            border: 1px solid #c7d2fe; /* Indigo 200 */
+        }
+        .counter-btn:hover {
+            background-color: #c7d2fe; /* Indigo 200 */
+        }
+        .counter-btn:disabled {
+            background-color: #f1f5f9; /* Slate 100 */
+            color: #94a3b8; /* Slate 400 */
+            cursor: not-allowed;
+            border-color: #e2e8f0; /* Slate 200 */
+        }
+        /* === END: NEW STYLE FOR STEP 3 COUNTER === */
+
+
+        /* Loading Spinner */
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #4f46e5;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        /* === START: STEP 4 STYLES === */
+        /* NEW: Style for the summary block */
+        .summary-block {
+            padding: 1.5rem; 
+            margin-bottom: 2rem; 
+            border-radius: 0.5rem; 
+            background-color: #f3f4f6; /* Gray 100 */
+            border: 1px solid #d1d5db; /* Gray 300 */
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05); 
+        }
+
+        .assignment-block { 
+            border-left: 5px solid; 
+            padding: 1.5rem; 
+            margin-bottom: 2rem; 
+            border-radius: 0.5rem; 
+            background-color: #fff; 
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05); 
+        }
+        
+        /* Step 4: NEW Sidebar Colors based on order */
+        .block-order-1 { border-color: #f59e0b; background-color: #fffbeb; } /* Orange */
+        .block-order-2 { border-color: #10b981; background-color: #ecfdf5; } /* Green */
+        .block-order-3 { border-color: #4f46e5; background-color: #eef2ff; } /* Blue */
+        /* MODIFIED (Instruction 5): Added 4th color */
+        .block-order-4 { border-color: #84C3BE; background-color: #f0fafa; } /* New Teal */
+
+
+        .input-style { 
+            width: 100%; 
+            padding: 0.75rem; 
+            border: 1px solid #d1d5db; 
+            border-radius: 0.5rem; 
+            resize: vertical; 
+            font-size: 1rem; 
+            transition: all 0.2s; 
+        }
+        .input-style:focus { 
+            border-color: #4f46e5; 
+            box-shadow: 0 0 0 3px #c7d2fe; 
+            outline: none; 
+        }
+        
+        .grammar-input {
+            border: 1px solid #ccc;
+            padding: 4px 6px;
+            border-radius: 4px;
+            text-align: center;
+            font-weight: 600;
+            color: #1e40af;
+            /* MODIFIED from prot_4: Let flexbox handle the width */
+            flex: 1 1 auto;
+            min-width: 100px;
+            max-width: 250px;
+        }
+        /* === END: STEP 4 STYLES === */
+
+        /* === START: CORRECTED STYLE FOR RANDOMIZER BUTTON (Instruction 2) === */
+        .random-button, .upload-button {
+            /* Solid primary color, matching style for both buttons */
+            background-color: #5350fc; /* Indigo 600 */
+            border: 2px solid #4f46e5; /* Indigo 700 - Darker border for depth */
+            color: white;
+            font-weight: bold;
+            transition: all 0.2s ease-in-out;
+            /* Prominent shadow for better appeal */
+            box-shadow: 0 6px 15px rgba(79, 70, 229, 0.4); 
+        }
+        .random-button:hover, .upload-button:hover {
+            background-color: #4d27d6; /* Indigo 700 */
+            box-shadow: 0 8px 20px rgba(79, 70, 229, 0.5);
+            transform: translateY(-2px); /* Taller lift on hover */
+        }
+        .random-button:active {
+            background-color: #3730a3; /* Indigo 800 */
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            transform: translateY(0);
+        }
+        /* === END: CORRECTED STYLE FOR RANDOMIZER BUTTON === */
+    </style>
+</head>
+<body class="p-4 sm:p-8">
+    <!-- MODIFIED: Added id="app-container" to fix getBoundingClientRect error -->
+    <div id="app-container" class="app-container">
+        <div id="header-section" class="mb-8">
+            <h1 class="text-3xl font-extrabold text-gray-900 mb-2 text-center">PELE Assignment Generator</h1>
+            <p class="text-gray-500 text-center">Powered by OpenAI</p>
+        </div>
+
+        <div class="mb-8">
+            <div class="relative pt-1">
+                <div class="flex mb-2 items-center justify-between">
+                    <div class="text-right">
+                        <span id="progress-text" class="text-xs font-semibold inline-block py-1 px-2 uppercase rounded-full text-indigo-600 bg-indigo-200">
+                            Step 1: Get Started
+                        </span>
+                    </div>
+                </div>
+                <div class="overflow-hidden h-2 mb-4 text-xs flex rounded bg-indigo-200">
+                    <div id="progress-bar" style="width: 25%" class="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-indigo-600 transition-all duration-500"></div>
+                </div>
+            </div>
+        </div>
+
+        <div id="step-1" class="step-content">
+            <h2 class="text-2xl font-bold text-gray-800 mb-6">Welcome! Let's Get Set Up.</h2>
+            <div class="p-6 bg-yellow-50 border-l-4 border-yellow-400 rounded-lg mb-6">
+                <h3 class="font-bold text-yellow-800 mb-2">Important: OpenAI API Key Required</h3>
+                <p class="text-sm text-yellow-700">To generate *real* assignments, you need an API key for the OpenAI model. Paste your key below.</p>
+            </div>
+
+            <div class="mb-6">
+                <label for="openai-api-key" class="block text-sm font-medium text-gray-700 mb-2">OpenAI API Key</label>
+                <input type="text" id="openai-api-key" placeholder="Paste your API key here (starts with 'sk-...')" 
+                       class="w-full p-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 transition duration-150 ease-in-out">
+            </div>
+
+            <div class="mt-8 flex justify-end">
+                <button id="step-1-next" class="px-6 py-3 bg-indigo-600 text-white font-semibold rounded-lg shadow-md hover:bg-indigo-700 transition duration-150 ease-in-out disabled:opacity-50" disabled>
+                    Next: Topic Selection →
+                </button>
+            </div>
+        </div>
+
+
+        <div id="step-2" class="step-content hidden">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-2xl font-bold text-gray-800">Step 2: Choose Your Topic</h2>
+                <div class="flex items-center space-x-3">
+                    <input type="file" id="upload-topic-input" accept=".txt,.pdf" class="hidden">
+                    <button id="upload-topic-btn" class="upload-button flex flex-col items-center justify-between px-4 py-1 rounded-lg text-white font-semibold flex-shrink-0" style="width: 130px; height: 50px;">
+                        <div class="flex-1 flex items-center justify-center" style="padding-bottom: 4px;">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                            </svg>
+                        </div>
+                        <span class="text-xs" style="white-space: nowrap;">Upload Topic</span>
+                    </button>
+                    <button id="select-random-topic-btn" class="random-button flex flex-col items-center justify-center px-4 py-1 rounded-lg text-white font-semibold flex-shrink-0" style="width: 130px; height: 50px;">
+                        <span class="text-xl leading-none">🎲</span>
+                        <span class="text-xs mt-1">Random Topic</span>
+                    </button>
+                </div>
+            </div>
+
+            <p class="text-gray-600 mb-4">Select **1 or 2 topics**. The order of selection determines the priority for content generation.</p>
+
+            <div class="p-4 border border-gray-200 rounded-lg bg-gray-50 mb-4">
+                <div class="flex space-x-2 items-center">
+                    <input type="text" id="custom-topic-text" placeholder="Search a custom topic or keyword..." 
+                           class="flex-grow p-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 transition duration-150 ease-in-out">
+                    <button id="select-custom-topic-btn" class="px-4 py-2 bg-indigo-600 text-white font-semibold rounded-lg shadow-md hover:bg-indigo-700 transition duration-150 ease-in-out disabled:opacity-50" disabled>
+                        Select
+                    </button>
+                </div>
+            </div>
+            <p id="selected-topics-indicator" class="text-sm font-medium text-gray-700 mb-6">Selected Topics (Priority Order): None</p>
+
+            <div id="topic-cards" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 mb-6">
+                </div>
+
+
+            <div class="flex justify-between mt-8">
+                <button id="step-2-back" class="px-6 py-3 text-gray-600 border border-gray-400 rounded-lg font-semibold hover:bg-gray-100 transition duration-150 ease-in-out">
+                    ← Back to API Setup
+                </button>
+                <!-- MODIFIED: Button now includes a span for the icon -->
+                <button id="step-2-next" class="px-6 py-3 bg-indigo-600 text-white font-semibold rounded-lg shadow-md hover:bg-indigo-700 transition duration-150 ease-in-out disabled:opacity-50 flex items-center space-x-2">
+                    <span>Next: Assignment Type</span>
+                    <span id="step-2-next-icon" class="font-bold">→</span>
+                </button>
+            </div>
+
+            <!-- REMOVED: Merge/Separate Popup -->
+
+        </div>
+
+        <div id="step-3" class="step-content hidden">
+            <h2 class="text-2xl font-bold text-gray-800 mb-6">Step 3: Format & Difficulty</h2>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <div>
+                    <h3 class="text-xl font-semibold text-gray-700 mb-4">Assignment Format</h3>
+                    <div id="format-cards" class="grid grid-cols-2 gap-4">
+                        </div>
+                </div>
+
+                <div>
+                    <h3 class="text-xl font-semibold text-gray-700 mb-4">Difficulty Level (CEFR)</h3>
+                    
+                    <div class="p-6 bg-indigo-50 rounded-lg shadow-inner">
+                        <div class="flex justify-between text-sm font-medium text-indigo-700 mb-4">
+                            <span id="cefr-display" class="text-2xl font-bold">A1</span>
+                            <span id="level-description-short" class="mt-1">Beginner</span>
+                        </div>
+                        <input type="range" min="1" max="6" value="3" id="cefr-slider" 
+                               class="w-full h-2 bg-indigo-300 rounded-lg appearance-none cursor-pointer slider-thumb">
+                        <div class="flex justify-between text-xs mt-2 text-indigo-700 font-medium">
+                            <span>A1</span>
+                            <span>A2</span>
+                            <span>B1</span>
+                            <span>B2</span>
+                            <span>C1</span>
+                            <span>C2</span>
+                        </div>
+                    </div>
+
+                    <div class="mt-6">
+                        <div id="description-toggle-header" class="flex items-center justify-between cursor-pointer p-3 rounded-lg bg-gray-100 hover:bg-gray-200 transition">
+                            <span class="font-medium text-gray-700">What does this level mean?</span>
+                            <span id="toggle-icon" class="text-gray-500 transform transition-transform duration-300">▼</span>
+                        </div>
+                        <div id="level-description-full" class="p-4 bg-white border border-t-0 rounded-b-lg text-sm text-gray-600 hidden">
+                            </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex justify-between mt-8">
+                <button id="step-3-back" class="px-6 py-3 text-indigo-600 border border-indigo-600 rounded-lg font-semibold hover:bg-indigo-50 transition duration-150 ease-in-out">
+                    Back (Step 2)
+                </button>
+                <button id="step-3-next-generate" class="px-8 py-3 bg-green-600 text-white font-bold rounded-lg shadow-xl hover:bg-green-700 transition duration-150 ease-in-out disabled:opacity-50" disabled>
+                    Generate Assignments
+                </button>
+            </div>
+        </div>
+
+        <div id="step-4" class="step-content hidden">
+            
+            <header class="text-center mb-10">
+                <h1 class="text-3xl font-extrabold text-gray-900 tracking-tight">Personalized English Learning</h1>
+                <p id="step-title" class="text-xl font-medium text-indigo-600 mt-2">My Personal Assignment</p>
+                <p class="text-gray-500 mt-1">Topic(s): <span id="final-topic-display" class="font-semibold text-gray-700"></span> | Level: <span id="final-level-display" class="font-semibold text-gray-700"></span></p>
+            </header>
+            
+            <div id="generation-loading" class="text-center p-12 border border-dashed border-gray-300 rounded-lg hidden">
+                <div class="spinner mx-auto mb-4"></div>
+                <p class="text-gray-600 font-semibold text-lg">
+                    Generating your personalized English assignments using the LLM...
+                </p>
+                <!-- NEW: Updated loading text -->
+                <p class="text-sm text-gray-500 mt-2">This may take up to 60 seconds, as we are generating topic summaries and assignments.</p>
+            </div>
+
+            <div id="generation-error" class="bg-red-50 border-l-4 border-red-400 text-red-700 p-4 rounded hidden" role="alert">
+                <p class="font-bold">Generation Failed</p>
+                <p id="error-message" class="text-sm">An unknown error occurred while contacting the LLM.</p>
+            </div>
+
+            <!-- This workspace will be populated by summaries AND assignments -->
+            <div id="assignments-workspace">
+                </div>
+
+            <!-- REMOVED: No Assignments Message Block -->
+            
+            <div id="grading-summary" class="hidden mt-8 p-6 bg-indigo-50 rounded-lg border border-indigo-200 shadow-md">
+                <h3 class="text-xl font-bold text-indigo-800">Review Summary</h3>
+                <p class="text-lg text-indigo-600 mt-1">Score on Graded Questions: <span id="current-score" class="font-extrabold text-2xl">0/0</span></p>
+                <p id="grading-message" class="text-sm text-indigo-700"></p>
+            </div>
+
+            <div class="flex justify-between mt-8">
+                <div class="space-x-4">
+                    <button id="step-4-back-to-prev" class="px-6 py-3 text-indigo-600 border border-indigo-600 rounded-lg font-semibold hover:bg-indigo-50 transition duration-150 ease-in-out">
+                        Change Criteria
+                    </button>
+                </div>
+                <button id="submit-assignments" class="px-6 py-3 bg-indigo-600 text-white font-semibold rounded-lg shadow-md hover:bg-indigo-700 transition duration-150 ease-in-out disabled:opacity-50" disabled>
+                    Grade & Review (Step 5)
+                </button>
+            </div>
+        </div>
+
+        <div id="step-5" class="step-content hidden">
+            <h2 class="text-2xl font-bold text-gray-800 mb-6">Step 5: Final Review & Export</h2>
+            
+            <div class="p-6 bg-green-50 border-l-4 border-green-400 text-green-700 rounded-lg mb-6">
+                <p class="font-bold">Success!</p>
+                <p class="text-sm">Your real, custom-generated assignments are ready for use. You can now copy or export them.</p>
+            </div>
+
+            <div id="final-review-content" class="p-6 border border-gray-200 rounded-lg bg-white shadow-sm space-y-4">
+                <h3 class="text-xl font-semibold text-gray-700">Assignments Summary</h3>
+                <div id="final-assignment-text" class="whitespace-pre-wrap text-gray-700 text-sm">
+                    </div>
+                <button onclick="copyToClipboard('final-assignment-text')" class="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg text-sm hover:bg-gray-300 transition duration-150 ease-in-out mt-4">
+                    Copy All Assignments
+                </button>
+            </div>
+
+            <div class="flex justify-between mt-8">
+                <button id="step-5-back-to-prev" class="px-6 py-3 text-indigo-600 border border-indigo-600 rounded-lg font-semibold hover:bg-indigo-50 transition duration-150 ease-in-out">
+                    Back (Step 4)
+                </button>
+                <button id="step-5-back-to-start" class="px-6 py-3 bg-gray-800 text-white font-semibold rounded-lg shadow-md hover:bg-gray-700 transition duration-150 ease-in-out">
+                    Finish & Restart
+                </button>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // =====================================================================================================
+        // GLOBAL CONFIGURATION & STATE
+        // =====================================================================================================
+
+        // IMPORTANT: The user must paste their key here
+        let API_KEY = '';
+        
+        // OpenAI Configuration
+        const OPENAI_MODEL = 'gpt-3.5-turbo-1106'; // A model supporting the JSON mode
+        const OPENAI_URL = 'https://api.openai.com/v1/chat/completions';
+
+        const appState = {
+            currentStep: 1,
+            selectedTopicIds: [], // Now holds IDs for all selected topics (predefined, custom, or uploaded)
+            // === START: MODIFIED STATE FOR STEP 3 ===
+            // 'selectedFormatIds' is replaced by 'selectedFormats'
+            // Old: selectedFormatIds: [],
+            selectedFormats: [], // New: Stores objects like { id: 'ft1', count: 2 }
+            // === END: MODIFIED STATE FOR STEP 3 ===
+            cefrLevel: 'B1',
+            // REMOVED: topicMergeMode state (no longer needed)
+            // NEW: State for generated summaries
+            generatedSummaries: [], // Will store objects: { topicId: '...', summary: '...' }
+            generatedAssignments: [],
+            userAnswers: [], // Stores the user's answers for each assignment
+            customTopicText: '',
+            uploadedTopic: null, // Stores { id: 'uploaded', name: 'File Name', content: '...' }
+        };
+
+        const TOPIC_POOL_DATA = [
+            { id: 1, name: 'AI & ML', icon: '🤖', category: 'Technology' },
+            { id: 2, name: 'Climate Change', icon: '🌍', category: 'Science' },
+            { id: 3, name: 'Quantum Physics', icon: '⚛️', category: 'Science' },
+            { id: 4, name: 'The Roman Empire', icon: '🏛️', category: 'History' },
+            { id: 5, name: 'Shakespeare', icon: '🎭', category: 'Literature' },
+            { id: 6, name: 'Biotechnology', icon: '🧬', category: 'Science' },
+            { id: 7, name: 'Ancient Egypt', icon: '☥', category: 'History' },
+            { id: 8, name: 'Cybersecurity', icon: '🔒', category: 'Technology' },
+            { id: 9, name: 'Poetry Analysis', icon: '📜', category: 'Literature' },
+            { id: 10, name: 'World Wars', icon: '⚔️', category: 'History' },
+            { id: 11, name: 'Space Exploration', icon: '🚀', category: 'Science' },
+            { id: 12, name: 'Philosophy', icon: '🧠', category: 'Literature' },
+            { id: 13, name: 'Renewable Energy', icon: '💡', category: 'Technology' },
+            { id: 14, name: 'Economic History', icon: '💰', category: 'History' }
+        ];
+        
+        // This pool will be updated with custom/uploaded topics
+        let TOPIC_POOL = [...TOPIC_POOL_DATA];
+        
+        // ********** MODIFIED FORMAT POOL **********
+        const FORMAT_POOL = [
+            // Note: WritingPrompt is marked as 'Ungraded' for the prototype, as LLM essay grading is complex
+            { id: 'ft1', name: 'English Text Topic', type: 'WritingPrompt', icon: '📝', description: 'Generates a full prompt for an essay or a short story (Ungraded)' },
+            { id: 'ft2', name: 'Grammar Practice', type: 'GrammarPractice', icon: '🧠', description: 'Generates sentences with blanks for conjunction or syntax practice' },
+            { id: 'ft3', name: 'Vocabulary Words', type: 'VocabularyWords', icon: '📚', description: 'Generates new words with context, requiring students to use them in sentences (Ungraded)' },
+            { id: 'ft4', name: 'Multiple Choice', type: 'MultipleChoice', icon: '✅', description: 'Generates questions with four potential answers, with only one correct answer' },
+        ];
+        // *****************************************
+
+        const CEFR_LEVELS = {
+            'A1': { short: 'Beginner', full: 'Can understand and use familiar everyday expressions and very basic phrases.' },
+            'A2': { short: 'Elementary', full: 'Can understand sentences and frequently used expressions related to areas of most immediate relevance.' },
+            'B1': { short: 'Intermediate', full: 'Can understand the main points of clear standard input on familiar matters regularly encountered in work, school, leisure, etc.' },
+            'B2': { short: 'Upper Intermediate', full: 'Can understand the main ideas of complex text on both concrete and abstract topics, including technical discussions in their field of specialization.' },
+            'C1': { short: 'Advanced', full: 'Can understand a wide range of demanding, longer texts, and recognize implicit meaning. Can express him/herself fluently and spontaneously.' },
+            'C2': { short: 'Proficiency', full: 'Can understand with ease virtually everything heard or read. Can summarize information from different spoken and written sources.' }
+        };
+
+
+        // =====================================================================================================
+        // UTILITY FUNCTIONS
+        // =====================================================================================================
+
+        function getElement(id) {
+            return document.getElementById(id);
+        }
+
+        // NEW HELPER FUNCTION (from prot_4 logic)
+        function formatTypeToName(type) {
+            const format = FORMAT_POOL.find(f => f.type === type);
+            return format ? format.name : type;
+        }
+
+        function showStep(stepNumber) {
+            appState.currentStep = stepNumber;
+            document.querySelectorAll('.step-content').forEach(el => el.classList.add('hidden'));
+            getElement(`step-${stepNumber}`).classList.remove('hidden');
+            updateProgressBar(stepNumber);
+            updateButtonStates();
+        }
+
+        function updateProgressBar(step) {
+            const percentage = step * 25;
+            getElement('progress-bar').style.width = `${percentage}%`;
+            
+            let text = `Step ${step}: `;
+            if (step === 1) text += "Get Started";
+            if (step === 2) text += "Choose Topic";
+            if (step === 3) text += "Format & Difficulty";
+            if (step === 4) text += "Review Assignments";
+            if (step === 5) text += "Final Export";
+
+            getElement('progress-text').textContent = text;
+        }
+        
+        function updateButtonStates() {
+            // Step 1: API Key validation (Using the updated ID)
+            const apiKeyInput = getElement('openai-api-key').value.trim();
+            API_KEY = apiKeyInput; // Update global key
+            getElement('step-1-next').disabled = !apiKeyInput;
+
+            // ********** MODIFIED Step 2: Topic validation & Button Label **********
+            const hasTopic = appState.selectedTopicIds.length > 0;
+            const step2NextBtn = getElement('step-2-next');
+
+            step2NextBtn.disabled = !hasTopic;
+            
+            // Custom Topic Search Select button
+            const customTopicInput = getElement('custom-topic-text').value.trim();
+            getElement('select-custom-topic-btn').disabled = !customTopicInput;
+
+            // Update topic selection limit visual
+            updateTopicSelectionVisuals();
+            // **********************************************************************
+
+            // === START: MODIFIED STEP 3 VALIDATION ===
+            // Step 3: Format validation
+            // Old: const hasFormat = appState.selectedFormatIds.length > 0;
+            const hasFormat = appState.selectedFormats.length > 0;
+            getElement('step-3-next-generate').disabled = !hasFormat;
+            // === END: MODIFIED STEP 3 VALIDATION ===
+
+            // Step 4: Assignment Review validation
+            getElement('submit-assignments').disabled = appState.generatedAssignments.length === 0;
+        }
+
+        // === START: MODIFIED/SPLIT SELECTION FUNCTIONS ===
+
+        // This function now *only* handles TOPICS
+        function toggleSelection(id, type) {
+            // NOTE: The 'type' parameter is kept for compatibility with the function call,
+            // but the format logic has been moved to 'toggleFormatSelection'.
+            if (type !== 'topic') {
+                console.error("Wrong function call. Use toggleFormatSelection for formats.");
+                return;
+            }
+
+            const stateArray = appState.selectedTopicIds;
+            const cardElement = getElement(`topic-${id}`);
+            const index = stateArray.indexOf(id);
+
+            if (index > -1) {
+                // Deselect
+                stateArray.splice(index, 1);
+                cardElement.classList.remove('selected');
+                // Remove priority number
+                const priorityNum = cardElement.querySelector('.priority-number');
+                if (priorityNum) priorityNum.remove();
+
+                // If the deselected card was custom/uploaded/random, remove it from TOPIC_POOL
+                if (typeof id === 'string') {
+                    TOPIC_POOL = TOPIC_POOL.filter(t => t.id !== id);
+                    if (id === 'uploaded') appState.uploadedTopic = null;
+                    renderCards(); // Re-render to show the pool without the custom/uploaded card
+                }
+
+            } else {
+                // Select - Check max limit (1-2 topics)
+                if (stateArray.length >= 2) {
+                    // Simple warning or do nothing if max is reached
+                    // alert("You can only select a maximum of 2 topics.");
+                    return; 
+                }
+                
+                // Select
+                stateArray.push(id);
+                cardElement.classList.add('selected');
+            }
+
+            updateButtonStates();
+            renderPriorityNumbers(); // Re-render priorities after change
+        }
+
+        // NEW function just for format cards
+        function toggleFormatSelection(id) {
+            const index = appState.selectedFormats.findIndex(sf => sf.id === id);
+
+            if (index > -1) {
+                // Deselect: Remove from array
+                appState.selectedFormats.splice(index, 1);
+            } else {
+                // Select: Add to array with default count of 1
+                appState.selectedFormats.push({ id: id, count: 1 });
+            }
+            
+            renderCards(); // Re-render all cards to show/hide counters
+            updateButtonStates(); // Update the "Generate" button state
+        }
+
+        // NEW function to update the count for a format
+        function updateFormatCount(id, change) {
+            const format = appState.selectedFormats.find(sf => sf.id === id);
+            if (format) {
+                const newCount = format.count + change;
+                // === START: MODIFIED LOGIC ===
+                // Apply max limit of 3 and min limit of 1
+                if (newCount >= 1 && newCount <= 3) { 
+                    format.count = newCount;
+                }
+                // === END: MODIFIED LOGIC ===
+                
+                // Update DOM directly instead of full re-render
+                getElement(`count-${id}`).textContent = format.count;
+                // === START: MODIFIED LOGIC ===
+                // Disable minus button if count is 1 or less
+                getElement(`btn-minus-${id}`).disabled = format.count <= 1;
+                // Disable plus button if count is 3 or more
+                getElement(`btn-plus-${id}`).disabled = format.count >= 3;
+                // === END: MODIFIED LOGIC ===
+            }
+        }
+        // === END: MODIFIED/SPLIT SELECTION FUNCTIONS ===
+
+        // === START: MODIFIED STEP 2 NEXT FUNCTION (REMOVED POPUP) ===
+        function handleStep2Next() {
+            // Automatically proceed to Step 3 - no popup needed
+            showStep(3);
+        }
+        // === END: MODIFIED STEP 2 NEXT FUNCTION ===
+
+
+        function updateTopicSelectionVisuals() {
+            const topicNames = appState.selectedTopicIds.map(id => {
+                const topic = TOPIC_POOL.find(t => t.id === id);
+                return topic ? topic.name : '';
+            }).filter(Boolean);
+
+            const indicatorText = topicNames.length > 0 
+                ? topicNames.map((name, index) => `#${index + 1} **${name}**`).join(' | ')
+                : 'None';
+
+            getElement('selected-topics-indicator').innerHTML = `Selected Topics (Priority Order): ${indicatorText}`;
+            renderPriorityNumbers(); // Ensure numbers are always up-to-date
+        }
+
+        function renderPriorityNumbers() {
+            // Remove all existing numbers first
+            document.querySelectorAll('.card-topic .priority-number').forEach(el => el.remove());
+
+            // Add numbers to selected cards
+            appState.selectedTopicIds.forEach((id, index) => {
+                const cardElement = getElement(`topic-${id}`);
+                if (cardElement) {
+                    const priorityNum = document.createElement('div');
+                    priorityNum.className = 'priority-number';
+                    priorityNum.textContent = index + 1;
+                    cardElement.appendChild(priorityNum);
+                }
+            });
+        }
+
+        function updateLevel(value) {
+            const levels = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'];
+            const level = levels[value - 1];
+            appState.cefrLevel = level;
+
+            const cefrDisplay = getElement('cefr-display');
+            const levelDescShort = getElement('level-description-short');
+            const levelDescFull = getElement('level-description-full');
+            
+            cefrDisplay.textContent = level;
+            levelDescShort.textContent = CEFR_LEVELS[level].short;
+            levelDescFull.textContent = CEFR_LEVELS[level].full;
+        }
+
+        function toggleDescription() {
+            const desc = getElement('level-description-full');
+            const icon = getElement('toggle-icon');
+            const isHidden = desc.classList.contains('hidden');
+            
+            desc.classList.toggle('hidden', !isHidden);
+            icon.style.transform = isHidden ? 'rotate(180deg)' : 'rotate(0deg)';
+        }
+
+        function renderCards() {
+            const topicContainer = getElement('topic-cards');
+            topicContainer.innerHTML = TOPIC_POOL.map(t => {
+                const isSelected = appState.selectedTopicIds.includes(t.id);
+                const category = t.category || 'Custom'; // Handle custom/uploaded/random topics
+                const idString = typeof t.id === 'number' ? t.id : `'${t.id}'`;
+
+                return `
+                    <div id="topic-${t.id}" class="card-topic p-4 rounded-xl flex flex-col items-center text-center ${isSelected ? 'selected' : ''}" onclick="toggleSelection(${idString}, 'topic')">
+                        <span class="text-3xl mb-1">${t.icon}</span>
+                        <h3 class="font-semibold text-gray-800">${t.name}</h3>
+                        <p class="text-xs text-gray-500 uppercase font-medium">${category}</p>
+                        ${isSelected ? `<div class="priority-number">${appState.selectedTopicIds.indexOf(t.id) + 1}</div>` : ''}
+                    </div>
+                `;
+            }).join('');
+
+            // === START: MODIFIED CARD RENDER FOR STEP 3 ===
+            const formatContainer = getElement('format-cards');
+            formatContainer.innerHTML = FORMAT_POOL.map(f => {
+                // Check against the new state structure
+                const selectedItem = appState.selectedFormats.find(sf => sf.id === f.id);
+                const isSelected = !!selectedItem;
+                const count = isSelected ? selectedItem.count : 0;
+
+                // Use 'toggleFormatSelection' instead of 'toggleSelection'
+                return `
+                <div id="format-${f.id}" class="card-format p-4 rounded-xl flex flex-col items-center justify-between text-center h-full ${isSelected ? 'selected' : ''}" onclick="toggleFormatSelection('${f.id}')">
+                    
+                    <div>
+                        <span class="${isSelected ? 'text-2xl' : 'text-3xl'} mb-1 transition-all">${f.icon}</span>
+                        <h3 class="${isSelected ? 'text-base font-bold' : 'font-semibold'} text-gray-800 transition-all">${f.name}</h3>
+                        <p class="${isSelected ? 'text-xs' : 'text-xs'} text-gray-500 ${isSelected ? 'line-clamp-3' : ''} transition-all">${f.description}</p>
+                    </div>
+                    
+                    ${isSelected ? `
+                    <div class="format-counter-container mt-2 pt-2 border-t border-indigo-200 w-full flex-shrink-0">
+                        <label class="block text-xs font-medium text-gray-700 mb-1">Quantity</label>
+                        <div class="flex items-center justify-center space-x-2 mt-1">
+                            <button id="btn-minus-${f.id}" class="counter-btn" onclick="event.stopPropagation(); updateFormatCount('${f.id}', -1)" ${count <= 1 ? 'disabled' : ''}>-</button>
+                            <span id="count-${f.id}" class="text-lg font-bold w-8 text-center">${count}</span>
+                            <button id="btn-plus-${f.id}" class="counter-btn" onclick="event.stopPropagation(); updateFormatCount('${f.id}', 1)" ${count >= 3 ? 'disabled' : ''}>+</button>
+                        </div>
+                    </div>
+                    ` : ''}
+                </div>
+                `;
+            }).join('');
+            // === END: MODIFIED CARD RENDER FOR STEP 3 ===
+
+            updateTopicSelectionVisuals(); // Re-render visuals after card update
+        }
+
+        function handleSelectCustomTopic() {
+            const customTopicInput = getElement('custom-topic-text');
+            const topicName = customTopicInput.value.trim();
+
+            if (!topicName) return;
+
+            const customId = 'custom_topic';
+            const newTopic = { 
+                id: customId, 
+                name: topicName, 
+                icon: '🔍', 
+                category: 'Search Term' 
+            };
+
+            // 1. Remove old custom/random/uploaded topic card from TOPIC_POOL and selected list if it exists
+            TOPIC_POOL = TOPIC_POOL.filter(t => t.id !== customId && t.id !== 'random_topic' && t.id !== 'uploaded');
+            appState.selectedTopicIds = appState.selectedTopicIds.filter(id => id !== customId && id !== 'random_topic' && id !== 'uploaded');
+            if (appState.uploadedTopic) appState.uploadedTopic = null;
+
+
+            // 2. Add the new custom topic to the front of the pool
+            TOPIC_POOL.unshift(newTopic);
+
+            // 3. Select the new topic card (this will handle the selection limit/priority)
+            if (appState.selectedTopicIds.length >= 2) {
+                // Deselect the last selected item to make room for the new one (as it's a new focus)
+                const idToDeselect = appState.selectedTopicIds.pop();
+                const elementToDeselect = getElement(`topic-${idToDeselect}`);
+                if (elementToDeselect) elementToDeselect.classList.remove('selected');
+            }
+            
+            appState.selectedTopicIds.push(customId);
+
+            // 4. Re-render cards and update state
+            renderCards();
+            updateButtonStates();
+            
+            // Clear input field after successful selection
+            customTopicInput.value = '';
+            // Ensure the newly created card has the 'selected' class
+            const newCardElement = getElement(`topic-${customId}`);
+            if (newCardElement) newCardElement.classList.add('selected');
+        }
+        
+        // ********** CORRECTED FUNCTION FOR RANDOM TOPIC **********
+        async function handleSelectRandomTopic() {
+            const randomTopicId = 'random_topic';
+            
+            // Temporarily disable the button and show a loading state
+            const randomBtn = getElement('select-random-topic-btn');
+            const originalHtml = randomBtn.innerHTML;
+            randomBtn.disabled = true;
+            randomBtn.innerHTML = '<div class="spinner w-5 h-5"></div> <span class="text-xs mt-1">Generating...</span>';
+            
+            try {
+                if (!API_KEY) {
+                    throw new Error("API Key is required to use the topic randomizer. Please complete Step 1.");
+                }
+                
+                // Simplified payload for robustness
+                const payload = {
+                    model: OPENAI_MODEL,
+                    messages: [
+                        // Simpler system prompt: requesting a raw array directly
+                        { role: "system", content: "You are a creative random topic generator. Your sole task is to generate 1 or 2 distinct, creative, and specific English learning topics suitable for a lesson. The response MUST be a raw JSON object containing a single key 'topics' with a JSON array of strings. Example response: {\"topics\": [\"The Sociology of Memes\", \"Deep Sea Hydrothermal Vents\"]}" },
+                        { role: "user", content: "Generate 1 or 2 random, unique, and specific English learning topics." }
+                    ],
+                    response_format: { type: "json_object" } // Keep this to ensure JSON format
+                };
+                
+                const apiResponse = await callOpenAIApi(payload);
+                const textPart = apiResponse?.choices?.[0]?.message?.content;
+                let randomTopics = [];
+                
+                if (textPart) {
+                    try {
+                        let jsonResponse = JSON.parse(textPart);
+                        
+                        // Robust check: find the 'topics' key
+                        if (jsonResponse.topics && Array.isArray(jsonResponse.topics)) {
+                            randomTopics = jsonResponse.topics;
+                        } else if (typeof jsonResponse === 'object' && !Array.isArray(jsonResponse)) {
+                            // Fallback: find the first array value
+                            const firstArray = Object.values(jsonResponse).find(Array.isArray);
+                            if (firstArray) randomTopics = firstArray;
+                        }
+
+                        // Final check
+                        randomTopics = Array.isArray(randomTopics) ? randomTopics.slice(0, 2).map(String) : [];
+
+                    } catch (e) {
+                        // Fallback logic: if JSON fails, try to extract text in a simpler way
+                        console.warn("JSON parsing failed, attempting text extraction fallback.", e);
+                        randomTopics = textPart.split('\n')
+                                                .map(t => t.replace(/[^a-zA-Z0-9\s.:-]/g, '').trim()) // Clean up punctuation
+                                                .filter(Boolean)
+                                                .slice(0, 2);
+                    }
+                }
+                
+                if (randomTopics.length === 0) {
+                     throw new Error("LLM failed to return a valid random topic.");
+                }
+                
+                // 2. Clear previous custom/random/uploaded topics and selection
+                TOPIC_POOL = TOPIC_POOL.filter(t => t.id !== randomTopicId && t.id !== 'custom_topic' && t.id !== 'uploaded');
+                appState.selectedTopicIds = appState.selectedTopicIds.filter(id => id !== randomTopicId && id !== 'custom_topic' && id !== 'uploaded');
+                if (appState.uploadedTopic) appState.uploadedTopic = null;
+
+                // 3. Create the new topic object(s). Use the first one for the card display.
+                const newTopicName = randomTopics.join(' & ');
+                const newTopic = { 
+                    id: randomTopicId, 
+                    name: newTopicName, 
+                    icon: '🎲', 
+                    category: 'Random Generator',
+                    content: `Randomly generated topics: ${randomTopics.join(' | ')}` // Store all topics here
+                };
+                
+                TOPIC_POOL.unshift(newTopic);
+                
+                // 4. Select the new random topic
+                if (appState.selectedTopicIds.length >= 2) {
+                    const idToDeselect = appState.selectedTopicIds.pop();
+                    const elementToDeselect = getElement(`topic-${idToDeselect}`);
+                    if (elementToDeselect) elementToDeselect.classList.remove('selected');
+                }
+                appState.selectedTopicIds.push(randomTopicId);
+                
+                // 5. Re-render and update state
+                renderCards();
+                updateButtonStates();
+                
+                // Ensure the newly created card has the 'selected' class
+                const newCardElement = getElement(`topic-${randomTopicId}`);
+                if (newCardElement) newCardElement.classList.add('selected');
+
+            } catch (error) {
+                 console.error("Random Topic Generation Error:", error.message);
+                 alert(`Failed to generate random topic. Error: ${error.message}`);
+            } finally {
+                // Restore the button state
+                randomBtn.innerHTML = originalHtml;
+                randomBtn.disabled = false;
+            }
+        }
+        // ********** END CORRECTED FUNCTION **********
+
+
+        function handleUploadTopic(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const content = e.target.result;
+                const fileName = file.name;
+                const uploadedId = 'uploaded';
+
+                const newTopic = { 
+                    id: uploadedId, 
+                    name: `File: ${fileName}`, 
+                    icon: '📄', 
+                    category: 'Uploaded Document',
+                    content: content
+                };
+
+                // 1. Remove old uploaded/custom/random topic card from TOPIC_POOL and selected list if it exists
+                TOPIC_POOL = TOPIC_POOL.filter(t => t.id !== uploadedId && t.id !== 'custom_topic' && t.id !== 'random_topic');
+                appState.selectedTopicIds = appState.selectedTopicIds.filter(id => id !== uploadedId && id !== 'custom_topic' && id !== 'random_topic');
+
+                // 2. Add the new uploaded topic to the pool
+                TOPIC_POOL.unshift(newTopic);
+                appState.uploadedTopic = newTopic;
+
+                // 3. Select the new topic card (handles limit/priority)
+                if (appState.selectedTopicIds.length >= 2) {
+                    const idToDeselect = appState.selectedTopicIds.pop();
+                    const elementToDeselect = getElement(`topic-${idToDeselect}`);
+                    if (elementToDeselect) elementToDeselect.classList.remove('selected');
+                }
+                appState.selectedTopicIds.push(uploadedId);
+
+                // 4. Re-render cards and update state
+                renderCards();
+                updateButtonStates();
+                
+                // Ensure the newly created card has the 'selected' class
+                const newCardElement = getElement(`topic-${uploadedId}`);
+                if (newCardElement) newCardElement.classList.add('selected');
+
+                // Clear the input to allow selecting the same file again if needed
+                event.target.value = null; 
+            };
+            reader.readAsText(file); // Only reading text for prototype simplicity
+        }
+
+        // MODIFIED: Function to handle user input changes and store them in appState.userAnswers
+        function handleUserAnswer(assignmentIndex, inputElement, answerType, subIndex = null) {
+            appState.userAnswers[assignmentIndex] = appState.userAnswers[assignmentIndex] || {};
+
+            // MODIFIED: Handle multi-input arrays for Vocab, Grammar, and MC
+            if (subIndex !== null) {
+                if (!appState.userAnswers[assignmentIndex].answer) {
+                    appState.userAnswers[assignmentIndex].answer = []; // Initialize as array
+                }
+                
+                if (answerType === 'MultipleChoice') {
+                    appState.userAnswers[assignmentIndex].answer[subIndex] = inputElement.value; // Store index
+                    // No visual feedback needed for plain radio buttons
+                } else {
+                    appState.userAnswers[assignmentIndex].answer[subIndex] = inputElement.value.trim(); // Store text
+                }
+                return; // Skip other logic
+            }
+            
+            // Handle single-input types (WritingPrompt)
+            if (answerType === 'WritingPrompt') {
+                appState.userAnswers[assignmentIndex].answer = inputElement.value.trim();
+            }
+        }
+
+        // MODIFIED: Function to render interactive elements based on assignment type
+        function renderInteractiveElement(assignment, index) {
+            const assignmentId = `assignment-${index}`;
+            const type = assignment.type;
+            let html = '';
+
+            // MODIFIED (Instruction 4): New MultipleChoice rendering (5-in-1, prot_4 style)
+            if (type === 'MultipleChoice' && assignment.questions && Array.isArray(assignment.questions)) {
+                html += '<div class="space-y-4">'; // Space between each question
+
+                assignment.questions.forEach((mcq, mcqIndex) => {
+                    const savedChoice = (appState.userAnswers[index]?.answer || [])[mcqIndex]; // This is the index "0", "1" etc.
+                    
+                    html += `<div class="p-3 border rounded-lg bg-gray-50" id="${assignmentId}-mcq-${mcqIndex}">`;
+                    // MODIFIED (Instruction 1): Trim question text
+                    html += `<p class="font-medium mb-2">${mcqIndex + 1}. ${mcq.question_text.trim()}</p>`; // Question text
+                    
+                    // Render the plain radio button options from prot_4
+                    mcq.options.forEach((option, optionIndex) => {
+                        const optionId = `${assignmentId}-mcq-${mcqIndex}-option-${optionIndex}`;
+                        // Check if this option was the one saved
+                        const isChecked = savedChoice === String(optionIndex);
+                        
+                        html += `
+                            <label for="${optionId}" class="block">
+                                <input type="radio" id="${optionId}" name="assignment-${index}-mc-${mcqIndex}" 
+                                       value="${optionIndex}" class="mr-2"
+                                       onchange="handleUserAnswer(${index}, this, '${type}', ${mcqIndex})"
+                                       ${isChecked ? 'checked' : ''}>
+                                ${option}
+                            </label>
+                        `;
+                    });
+                    html += '</div>'; // Close p-3
+                });
+                html += '</div>'; // Close space-y-4
+
+            // MODIFIED (Instruction 2): New GrammarPractice rendering (5-in-1)
+            } else if (type === 'GrammarPractice' && assignment.content) {
+                html += '<div class="space-y-4">';
+                // MODIFIED (Instruction 1): Trim content and split lines
+                const lines = (assignment.content || "").trim().split('\n').filter(Boolean);
+                
+                lines.forEach((line, lineIndex) => {
+                    // MODIFIED (Instruction 1): Trim individual line
+                    const parts = line.trim().split('___');
+                    const savedAnswer = (appState.userAnswers[index]?.answer || [])[lineIndex] || '';
+                    if (parts.length > 1) {
+                        // UPDATED: Removed duplicate numbering
+                        html += `
+                            <div class="flex items-center space-x-2 flex-wrap">
+                                <span class="text-gray-700">${parts[0].trim()}</span>
+                                <input type="text" id="${assignmentId}-input-${lineIndex}" class="grammar-input" placeholder="Answer"
+                                       oninput="handleUserAnswer(${index}, this, '${type}', ${lineIndex})"
+                                       value="${savedAnswer}">
+                                <span class="text-gray-700">${parts[1].trim()}</span>
+                            </div>
+                        `;
+                    }
+                });
+                html += '</div>';
+
+            // MODIFIED (Instruction 3): New VocabularyWords rendering
+            } else if (type === 'VocabularyWords' && assignment.content) {
+                // MODIFIED (Instruction 1): Trim content and split lines
+                const lines = (assignment.content || "").trim().split('\n').filter(Boolean);
+                const instruction = lines[0].trim() + " (Write one sentence for each word below.)";
+                const words = lines.slice(1);
+                
+                html += `<p class="text-gray-700 font-medium mb-4">${instruction}</p>`; // The instruction
+                html += '<div class="space-y-4">'; // Container
+                html += words.map((word, vIndex) => {
+                    const savedAnswer = (appState.userAnswers[index]?.answer || [])[vIndex] || '';
+                    return `
+                        <p class="font-semibold">${word.trim()}</p>
+                        <textarea id="${assignmentId}-answer-${vIndex}" class="input-style" rows="2" 
+                                  placeholder="Write one sentence using the word..."
+                                  oninput="handleUserAnswer(${index}, this, 'VocabularyWords', ${vIndex})">${savedAnswer}</textarea>
+                    `;
+                }).join('');
+                html += '</div>';
+
+            } else if (type === 'WritingPrompt' && assignment.content) {
+                html += '<p class="text-sm font-semibold text-gray-700 mb-2 mt-2">Your Response (Ungraded):</p>';
+                html += `
+                    <textarea id="${assignmentId}-input" rows="5" placeholder="Write your response here..."
+                              class="input-style"
+                              oninput="handleUserAnswer(${index}, this, '${type}')">${appState.userAnswers[index]?.answer || ''}</textarea>
+                `;
+            } else {
+                // Fallback for unexpected format
+                const fallbackContent = (assignment.question || assignment.content || "Error: Could not render").trim();
+                html += `<p class="text-sm text-red-500">Error: Could not render interactive element for this type. Content: ${fallbackContent}</p>`;
+            }
+
+            return html;
+        }
+
+        // === START: NEW FUNCTIONS TO CREATE UI ELEMENTS ===
+        
+        // NEW: Creates the DOM element for a summary
+        function createSummaryElement(summaryText, title) {
+            const summaryDiv = document.createElement('div');
+            summaryDiv.className = 'summary-block';
+            summaryDiv.innerHTML = `
+                <h2 class="text-xl font-bold text-gray-800 mb-3">${title}</h2>
+                <div class="text-gray-700 leading-relaxed whitespace-pre-wrap">${summaryText}</div>
+            `;
+            return summaryDiv;
+        }
+
+        // NEW: Creates the DOM element for an assignment (refactored from displayAssignments)
+        function createAssignmentElement(assignment, index) {
+            const card = document.createElement('div');
+            // MODIFIED (Instruction 5): Use 4 colors
+            const sidebarColors = ['block-order-1', 'block-order-2', 'block-order-3', 'block-order-4'];
+            const colorClass = sidebarColors[index % 4];
+            
+            // NEW: Using .assignment-block class and ID
+            card.className = `assignment-block ${colorClass}`; 
+            card.id = `assignment-card-${index}`; // Keep ID for graders
+
+            // MODIFIED (Instruction 1, 3, 4a): Handle what content to show in the top block
+            let assignmentContent = "";
+            if (assignment.type === 'WritingPrompt') {
+                // Only WritingPrompt shows its content here
+                assignmentContent = (assignment.content || "").trim();
+            } else if (assignment.type === 'GrammarPractice') {
+                // Grammar shows its main "question" (instruction) here
+                assignmentContent = (assignment.question || "").trim();
+            }
+            // VocabularyWords and MultipleChoice show NOTHING here
+
+            const typeName = formatTypeToName(assignment.type); // Use helper
+            // Add a number if there are multiple assignments of the same type
+            const assignmentTitle = assignment.title || 'Assignment';
+            
+            // Get HTML from the modified render function
+            const interactiveHtml = renderInteractiveElement(assignment, index);
+
+            // NEW HTML Structure (from prot_4)
+            card.innerHTML = `
+                <h3 class="text-2xl font-bold mb-3">${typeName} - <span class="text-lg font-medium text-gray-500">${assignmentTitle}</span></h3>
+                
+                ${assignmentContent ? `
+                    <div class="question-area mb-4">
+                        <div class="text-gray-700 leading-relaxed whitespace-pre-wrap">
+                            ${assignmentContent.replace(/\n/g, '<br>')}
+                        </div>
+                    </div>
+                ` : ''} 
+
+                <div class="interactive-area pt-2">
+                    ${interactiveHtml}
+                </div>
+                
+                <div id="feedback-${index}" class="text-sm mt-4 p-3 rounded-lg hidden border-l-4"></div>
+            `;
+            return card;
+        }
+        // === END: NEW FUNCTIONS TO CREATE UI ELEMENTS ===
+
+
+        // MODIFIED: This function now builds the visual structure from prot_4
+        // AND includes the new Summary logic
+        function displayAssignments() {
+            const resultsContainer = getElement('assignments-workspace');
+            const submitButton = getElement('submit-assignments');
+            
+            resultsContainer.innerHTML = ''; // Clear previous content
+            
+            // UPDATED: Remove "No Assignments" message handling
+            const hasContent = appState.generatedSummaries.length > 0 || appState.generatedAssignments.length > 0;
+            
+            if (!hasContent) {
+                resultsContainer.classList.add('hidden');
+                submitButton.classList.add('hidden'); // Hide submit if no assignments
+                return;
+            }
+            
+            // Show assignments
+            resultsContainer.classList.remove('hidden');
+            submitButton.classList.remove('hidden');
+
+            // Initialize userAnswers array
+            appState.userAnswers = new Array(appState.generatedAssignments.length).fill(null).map(() => ({ answer: null })); // Use null for array/string flexibility
+            getElement('grading-summary').classList.add('hidden');
+
+            // MODIFIED (Instruction 1): Populate new header with ALL topics
+            const topicNames = appState.selectedTopicIds.map(id => {
+                return TOPIC_POOL.find(t => t.id === id)?.name;
+            }).filter(Boolean).join(', ') || 'N/A';
+            
+            getElement('final-topic-display').textContent = topicNames;
+            getElement('final-level-display').textContent = appState.cefrLevel;
+            
+            // --- SIMPLIFIED DISPLAY LOGIC (ALWAYS MERGE) ---
+            const summary = appState.generatedSummaries[0]?.summary;
+            if (summary) {
+                resultsContainer.appendChild(createSummaryElement(summary, 'Topic Summary'));
+            }
+            appState.generatedAssignments.forEach((assignment, index) => {
+                resultsContainer.appendChild(createAssignmentElement(assignment, index));
+            });
+            // --- END SIMPLIFIED DISPLAY LOGIC ---
+        }
+        
+        // MODIFIED: Grading Function to support new array-based answers
+        // NO CHANGES NEEDED HERE - This function iterates `appState.generatedAssignments`
+        // and is already equipped to handle multiple assignments of the same type.
+        function gradeAssignments() {
+            let correctCount = 0;
+            let totalGradable = 0;
+            let finalAssignmentText = '';
+            
+            // NEW: Add summaries to the final text
+            appState.generatedSummaries.forEach(summaryItem => {
+                const topic = TOPIC_POOL.find(t => t.id === summaryItem.topicId);
+                const title = topic ? topic.name : 'Summary';
+                finalAssignmentText += `========== SUMMARY: ${title} ==========\n${summaryItem.summary}\n\n`;
+            });
+            if (appState.generatedSummaries.length > 0) {
+                 finalAssignmentText += `\n========== ASSIGNMENTS ==========\n`;
+            }
+
+
+            appState.generatedAssignments.forEach((assignment, index) => {
+                const userAnswer = appState.userAnswers[index]?.answer; // This can be a string OR an array
+                const feedbackElement = getElement(`feedback-${index}`);
+                const cardElement = getElement(`assignment-card-${index}`);
+                const type = assignment.type;
+
+                // Reset state
+                feedbackElement.classList.add('hidden');
+                feedbackElement.className = 'text-sm mt-4 p-3 rounded-lg border-l-4'; 
+                
+                // MODIFIED (Instruction 4): No more tile UI to clear
+                
+                // MODIFIED (Instruction 4): New MC grading logic
+                if (type === 'MultipleChoice' && assignment.questions) {
+                    let correctInBlock = 0;
+                    const userAnswerArray = userAnswer || [];
+                    const totalInBlock = assignment.questions.length;
+                    totalGradable += totalInBlock;
+                    
+                    let mcqFinalText = '';
+                    let mcqFeedbackText = ''; // Text for Step 4 feedback
+
+                    assignment.questions.forEach((mcq, mcqIndex) => {
+                        const correctIndex = mcq.correctAnswerIndex;
+                        const userChoice = userAnswerArray[mcqIndex]; // This is the index (e.g., "1")
+                        let isCorrect = false;
+
+                        if (userChoice !== undefined && userChoice !== null) {
+                            isCorrect = parseInt(userChoice) === correctIndex;
+                            if (isCorrect) {
+                                correctInBlock++;
+                                correctCount++;
+                            }
+                        }
+                        
+                        // Text for Step 5
+                        const selectedText = (userChoice !== undefined && userChoice !== null) ? mcq.options[parseInt(userChoice)] : 'N/A';
+                        mcqFinalText += `  Q${mcqIndex + 1}: ${mcq.question_text}\n  Your Answer: ${selectedText}\n  Correct Answer: ${mcq.options[correctIndex]}\n  Result: ${isCorrect ? 'Correct' : 'Incorrect'}\n\n`;
+                        
+                        // MODIFIED (Instruction 4): New feedback text for Step 4
+                        if (isCorrect) {
+                            mcqFeedbackText += `<p class="text-sm text-green-600">Q${mcqIndex + 1}: Correct!</p>`;
+                        } else if (userChoice === undefined || userChoice === null) {
+                            mcqFeedbackText += `<p class="text-sm text-yellow-600">Q${mcqIndex + 1}: Skipped. Correct was: ${mcq.options[correctIndex]}</p>`;
+                        } else {
+                            mcqFeedbackText += `<p class="text-sm text-red-600">Q${mcqIndex + 1}: Incorrect. Correct was: ${mcq.options[correctIndex]}</p>`;
+                        }
+                    });
+
+                    // Update feedback element
+                    feedbackElement.innerHTML = `
+                        <p class="font-semibold mb-2">Result: You answered ${correctInBlock} / ${totalInBlock} questions correctly.</p>
+                        ${mcqFeedbackText}
+                    `;
+                    feedbackElement.classList.add('bg-gray-100', 'text-gray-700', 'border-gray-400');
+                    feedbackElement.classList.remove('hidden');
+
+                    finalAssignmentText += `--- ${assignment.title} (Multiple Choice) ---\n${mcqFinalText}`;
+
+                // MODIFIED (Instruction 2): New Grammar grading logic
+                } else if (type === 'GrammarPractice' && Array.isArray(assignment.correctAnswer)) {
+                    let correctInBlock = 0;
+                    const userAnswerArray = userAnswer || [];
+                    const expectedAnswerArray = assignment.correctAnswer;
+                    const totalInBlock = expectedAnswerArray.length;
+                    totalGradable += totalInBlock;
+
+                    let grammarFinalText = `Prompt: ${assignment.content.replace(/\n/g, '\n  ')}\n`;
+                    let grammarFeedbackText = ''; // Text for Step 4 feedback
+                    
+                    expectedAnswerArray.forEach((expectedAns, ansIndex) => {
+                        const userAns = (userAnswerArray[ansIndex] || "").trim().toLowerCase();
+                        const correctAns = expectedAns.trim().toLowerCase();
+                        let isCorrect = false;
+
+                        if (userAns === correctAns) {
+                            correctInBlock++;
+                            correctCount++;
+                            isCorrect = true;
+                        }
+                        
+                        grammarFinalText += `  Q${ansIndex + 1}: Your Answer: "${userAnswerArray[ansIndex] || 'N/A'}", Correct: "${expectedAns}", Result: ${isCorrect ? 'Correct' : 'Incorrect'}\n`;
+                        
+                        // New feedback text for Step 4
+                        if (isCorrect) {
+                            grammarFeedbackText += `<p class="text-sm text-green-600">Q${ansIndex + 1}: Correct!</p>`;
+                        } else if (!userAnswerArray[ansIndex]) {
+                            grammarFeedbackText += `<p class="text-sm text-yellow-600">Q${ansIndex + 1}: Skipped. Correct was: "${expectedAns}"</p>`;
+                        } else {
+                            grammarFeedbackText += `<p class="text-sm text-red-600">Q${ansIndex + 1}: Incorrect. Correct was: "${expectedAns}"</p>`;
+                        }
+                    });
+
+                    // Update feedback element
+                    feedbackElement.innerHTML = `
+                        <p class="font-semibold mb-2">Result: You answered ${correctInBlock} / ${totalInBlock} questions correctly.</p>
+                        ${grammarFeedbackText}
+                    `;
+                    feedbackElement.classList.add('bg-gray-100', 'text-gray-700', 'border-gray-400');
+                    feedbackElement.classList.remove('hidden');
+                    
+                    finalAssignmentText += `--- ${assignment.title} (Grammar) ---\n${grammarFinalText}\n`;
+
+                } else {
+                    // WritingPrompt/VocabularyWords (Ungraded)
+                    let userResponseText = '';
+                    if (type === 'VocabularyWords' && Array.isArray(userAnswer)) {
+                        userResponseText = userAnswer.filter(Boolean).join('\n');
+                    } else if (type === 'WritingPrompt') {
+                        userResponseText = userAnswer || '';
+                    }
+
+                    feedbackElement.textContent = "📝 This is a long-form assignment and is not automatically graded in this prototype. Review your response below.";
+                    feedbackElement.classList.add('bg-gray-100', 'text-gray-600', 'border-gray-400');
+                    feedbackElement.classList.remove('hidden');
+                    
+                    // Prepare final text: Include Prompt and User Response
+                    finalAssignmentText += `--- ${assignment.title} (${type}) ---\nPrompt:\n${assignment.content}\n\nUser Response:\n${userResponseText}\n\n(Ungraded)\n\n`;
+                }
+            });
+
+            // Update Grading Summary
+            const scoreDisplay = getElement('current-score');
+            scoreDisplay.textContent = `${correctCount}/${totalGradable}`;
+            getElement('grading-summary').classList.remove('hidden');
+            
+            if (totalGradable > 0) {
+                 const percentage = Math.round((correctCount / totalGradable) * 100);
+                 getElement('grading-message').textContent = `You scored ${percentage}% on the automatically graded questions. Review the detailed feedback above for each question!`;
+            } else {
+                 getElement('grading-message').textContent = `No automatically gradable questions were generated. Your score is based on questions of type Multiple Choice and Grammar Practice.`;
+            }
+
+            // Update final text for Step 5
+            getElement('final-assignment-text').textContent = finalAssignmentText;
+            showStep(5);
+        }
+
+        function submitAssignments() {
+            gradeAssignments();
+        }
+
+        function copyToClipboard(elementId) {
+            const content = getElement(elementId).textContent;
+            
+            // Use execCommand('copy') for better compatibility in iframe environments
+            const tempTextArea = document.createElement('textarea');
+            tempTextArea.value = content;
+            document.body.appendChild(tempTextArea);
+            tempTextArea.select();
+            
+            try {
+                document.execCommand('copy');
+                // Simple visual feedback instead of alert()
+                const button = event.target;
+                const originalText = button.textContent;
+                button.textContent = 'Copied!';
+                setTimeout(() => { button.textContent = originalText; }, 1500);
+            } catch (err) {
+                console.error('Failed to copy text: ', err);
+            }
+            document.body.removeChild(tempTextArea);
+        }
+
+        // =====================================================================================================
+        // OPENAI API INTEGRATION LOGIC (UPDATED FOR NEW FORMATS AND ANSWERS)
+        // =====================================================================================================
+
+        // MODIFIED: This function now takes arguments instead of reading global state
+        function buildOpenAIPayload(topicIds, summary, appState) {
+            const level = appState.cefrLevel;
+            
+            // Get selected topic details
+            const selectedTopics = topicIds.map(id => {
+                return TOPIC_POOL.find(t => t.id === id);
+            }).filter(Boolean);
+
+            const topicNames = selectedTopics.map(t => t.name);
+            
+            // Priority weight logic for LLM
+            const priorityExplanation = selectedTopics.length === 2 
+                ? `Topic 1 (${topicNames[0]}) has a 60% priority weight. Topic 2 (${topicNames[1]}) has a 40% priority weight.` 
+                : selectedTopics.length === 1 
+                ? `Topic 1 (${topicNames[0]}) has a 100% priority weight.`
+                : '';
+
+            // === START: MODIFIED PAYLOAD LOGIC ===
+            // This now builds the formatTypes array based on the counts
+            const formatTypes = [];
+            appState.selectedFormats.forEach(sf => {
+                const formatFromPool = FORMAT_POOL.find(f => f.id === sf.id);
+                if (formatFromPool) {
+                    for (let i = 0; i < sf.count; i++) {
+                        formatTypes.push(formatFromPool.type);
+                    }
+                }
+            });
+            
+            const numAssignments = formatTypes.length; // This now reflects the total count
+            // === END: MODIFIED PAYLOAD LOGIC ===
+
+            // MODIFIED: Updated system prompt with new requirements
+            const systemPrompt = `You are an expert English assignment generator. Your task is to create ${numAssignments} high-quality, professional English learning assignments based on the user's detailed criteria.
+            The user requires the output to be a single, raw JSON object that conforms EXACTLY to the following structure. DO NOT include any explanatory text, markdown, or preamble/postamble outside of the JSON block.
+            
+            JSON Structure:
+            {
+              "assignments": [
+                {
+                  "title": "A concise title for the assignment.",
+                  "type": "The exact assignment type, MUST be one of: ${formatTypes.join(', ')}",
+                  "content": "The full instructions/body text for WritingPrompt OR the 5 sentences for GrammarPractice (separated by \\n) OR the list of words for VocabularyWords.",
+                  "question": "The main instruction text for MultipleChoice OR GrammarPractice (e.g., 'Choose the best option.' or 'Fill in the blanks.').",
+                  "correctAnswer": "An array of 5 correct answer strings for GrammarPractice (e.g., ["is", "are", "was", "were", "been"]). Null otherwise.",
+                  
+                  "questions": [
+                    {
+                      "question_text": "The text for an individual question.",
+                      "options": ["A", "B", "C", "D"],
+                      "correctAnswerIndex": 0
+                    }
+                  ]
+                },
+                ... (one object for each requested assignment format, respecting the requested quantity of each type)
+              ]
+            }
+            
+            CRITICAL REQUIREMENTS:
+            
+            1. CEFR LEVEL ENFORCEMENT:
+               - ALL content MUST be written at the CEFR ${level} level.
+               - Use vocabulary, grammar complexity, and sentence structures appropriate for ${level} learners.
+               - The difficulty MUST match the specified ${level} level EXACTLY.
+               
+            2. ASSIGNMENT-SPECIFIC RULES:
+            
+            - WritingPrompt: 
+              * MUST be directly based on and test comprehension of the provided summary text.
+              * Use 'content' for the prompt. Set all other fields to null.
+              
+            - MultipleChoice:
+              * MUST be directly based on and test comprehension of the provided summary text.
+              * Use 'question' for the main instruction (e.g., "Read the text and choose...").
+              * Use the 'questions' array to provide 5 individual multiple-choice questions that test comprehension of the summary.
+              * Set 'content' and 'correctAnswer' to null.
+              
+            - VocabularyWords:
+              * Can be loosely related to the topics.
+              * Use 'content' for the prompt AND the list of words. The first line is the prompt, subsequent lines are the words (e.g., "Use these words in a sentence:\\n1. Word (n): Definition...\\n2. Word (v): Definition..."). 
+              * Set all other fields to null.
+              
+            - GrammarPractice:
+              * Can be loosely related to the topics.
+              * Use 'question' for the main instruction (e.g., "Complete the sentences...").
+              * Use 'content' for the 5 sentences, each separated by \\n and containing a '___' blank. 
+              * Use 'correctAnswer' for an array of 5 correct strings. 
+              * Set 'questions' to null.
+            `;
+            
+            // User Query: Supplies the specific content criteria
+            const userQuery = `
+                Generate the assignments now.
+                
+                1. Difficulty Level (CEFR): ${level}
+                2. Core Topic(s) (in order of priority): ${topicNames.join(', ')}
+                3. Assignment Formats (requesting the TYPES): ${formatTypes.join(', ')}
+                4. Generated Summary Text: "${summary}"
+
+                CRITICAL INSTRUCTIONS:
+                
+                - WritingPrompt and MultipleChoice assignments MUST be EXPLICITLY based on the provided summary text above.
+                - VocabularyWords and GrammarPractice can be more loosely related to the topics.
+                - ${priorityExplanation}
+                
+                You must generate exactly ${numAssignments} total assignments, one for each type listed in 'Assignment Formats'.
+            `;
+            
+            return {
+                model: OPENAI_MODEL,
+                messages: [
+                    { role: "system", content: systemPrompt },
+                    { role: "user", content: userQuery }
+                ],
+                // CRITICAL: Force the model to return a JSON object
+                response_format: { type: "json_object" }
+            };
+        }
+
+        // NEW: Creates the payload for the summary generation
+        function buildSummaryPayload(topicIds, appState) {
+            const level = appState.cefrLevel;
+            
+            // Get selected topic details
+            const selectedTopics = topicIds.map(id => {
+                return TOPIC_POOL.find(t => t.id === id);
+            }).filter(Boolean);
+
+            const topicNames = selectedTopics.map(t => t.name);
+            const topicContent = selectedTopics.map(t => {
+                if ((t.id === 'custom_topic' || t.id === 'uploaded' || t.id === 'random_topic') && t.content) {
+                    return `\n\n[USER PROVIDED CONTENT FOR ${t.name}:\n${t.content.substring(0, 500)}...\n]`
+                }
+                return '';
+            }).join('');
+            
+            const priorityExplanation = selectedTopics.length === 2 
+                ? `Topic 1 (${topicNames[0]}) has a 60% priority weight. Topic 2 (${topicNames[1]}) has a 40% priority weight.` 
+                : `Topic 1 (${topicNames[0]}) has a 100% priority weight.`;
+
+            // MODIFIED: Updated summary prompt with new two-topic relationship structure
+            const systemPrompt = `You are an expert educator and writer. Your task is to generate a single, high-quality, and informative topic summary for an English learner.
+            - The summary MUST be between 200 and 300 words.
+            - The summary MUST be written at the specified CEFR level (${level}). Use vocabulary and sentence structures appropriate for ${level} learners.
+            - You MUST return ONLY the raw text of the summary.
+            - Do NOT include any titles, headers, markdown, or any text other than the summary itself.
+            - Do NOT return JSON.
+            
+            CRITICAL STRUCTURE FOR TWO TOPICS:
+            If there are two topics, structure the summary as follows:
+            1. Briefly introduce both topics and their core concepts
+            2. Factually state whether these topics have any direct relationship or not
+            3. If they have a relationship: Explore this relationship in depth, showing how they connect
+            4. If they have no direct relationship: Look for indirect connections or create a creative hypothetical relationship
+            5. Ensure the topics are related from the beginning, not just mentioned separately
+            `;
+            
+            const userQuery = `
+                Generate the topic summary now.
+                1. Difficulty Level (CEFR): ${level}
+                2. Core Topic(s) (in order of priority): ${topicNames.join(', ')}
+                3. Word Count: 200-300 words.
+                
+                ${priorityExplanation}
+                ${topicContent}
+                
+                Return ONLY the raw text of the summary.
+            `;
+            
+            return {
+                model: OPENAI_MODEL, // Use the same model
+                messages: [
+                    { role: "system", content: systemPrompt },
+                    { role: "user", content: userQuery }
+                ],
+                // DO NOT include response_format, as we want plain text
+            };
+        }
+
+        async function callOpenAIApi(payload) {
+            const maxRetries = 3;
+
+            for (let attempt = 0; attempt < maxRetries; attempt++) {
+                try {
+                    const response = await fetch(OPENAI_URL, {
+                        method: 'POST',
+                        headers: { 
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${API_KEY}` // Using Authorization header
+                        },
+                        body: JSON.stringify(payload)
+                    });
+
+                    if (response.status === 401) {
+                        throw new Error("Unauthorized (401). Please check if your OpenAI API Key is valid and correctly entered.");
+                    }
+                    if (!response.ok) {
+                        const errorBody = await response.json();
+                        console.error(`Attempt ${attempt + 1} failed:`, errorBody);
+                        throw new Error(`OpenAI API error: ${response.status} - ${errorBody.error?.message || 'Unknown error'}`);
+                    }
+
+                    const result = await response.json();
+                    return result;
+
+                } catch (error) {
+                    if (attempt < maxRetries - 1) {
+                        const delay = Math.pow(2, attempt) * 2000; // Exponential backoff (2s, 4s)
+                        await new Promise(resolve => setTimeout(resolve, delay));
+                    } else {
+                        // Throw final error if max retries reached
+                        throw new Error(`Failed to communicate with OpenAI after ${maxRetries} attempts. Details: ${error.message}`);
+                    }
+                }
+            }
+        }
+
+        function processGeneratedText(apiResponse) {
+            try {
+                // OpenAI JSON mode returns content in choices[0].message.content
+                const textPart = apiResponse?.choices?.[0]?.message?.content;
+                
+                if (!textPart) {
+                    throw new Error("OpenAI response was empty or malformed.");
+                }
+
+                // The model is instructed to return a JSON object like { "assignments": [...] }
+                const responseJson = JSON.parse(textPart);
+
+                if (!Array.isArray(responseJson.assignments)) {
+                    throw new Error("LLM response did not contain the expected 'assignments' array.");
+                }
+
+                return responseJson.assignments;
+
+            } catch (e) {
+                console.error("Error parsing LLM output:", e);
+                throw new Error("Could not process the generated assignment text. The LLM might have returned invalid JSON or a non-compliant structure.");
+            }
+        }
+
+        // NEW: Function to generate just the summary
+        async function generateTopicSummary(topicIds) {
+            const payload = buildSummaryPayload(topicIds, appState);
+            const apiResponse = await callOpenAIApi(payload);
+            // For text-only response, we don't parse JSON
+            const summaryText = apiResponse?.choices?.[0]?.message?.content;
+            if (!summaryText) {
+                throw new Error("LLM failed to return a summary text.");
+            }
+            return summaryText;
+        }
+
+        // NEW: Function to generate just the assignments
+        async function generateAssignmentsForTopics(topicIds, summary) {
+            const payload = buildOpenAIPayload(topicIds, summary, appState);
+            const apiResponse = await callOpenAIApi(payload);
+            // This call expects JSON, so we process it
+            return processGeneratedText(apiResponse);
+        }
+
+
+        // MODIFIED: This is the new master generation function
+        async function startGeneration() {
+            // Check for API Key
+            if (!API_KEY) {
+                getElement('error-message').textContent = "Please enter your OpenAI API Key in Step 1 to continue.";
+                getElement('generation-error').classList.remove('hidden');
+                showStep(1);
+                return;
+            }
+
+            // Show Step 4 and the loading state
+            showStep(4);
+            getElement('generation-error').classList.add('hidden');
+            getElement('generation-loading').classList.remove('hidden');
+            getElement('assignments-workspace').classList.add('hidden');
+            
+            // Disable buttons
+            getElement('step-4-back-to-prev').disabled = true;
+            getElement('submit-assignments').disabled = true;
+
+            try {
+                // Clear old data
+                appState.generatedSummaries = [];
+                appState.generatedAssignments = [];
+                displayAssignments(); // Clear the UI
+
+                const topicIds = appState.selectedTopicIds;
+
+                if (topicIds.length > 0) {
+                    // Generate summary first
+                    const summary = await generateTopicSummary(topicIds);
+                    appState.generatedSummaries.push({ topicId: 'merged', summary: summary });
+
+                    // Generate assignments using the summary
+                    const assignments = await generateAssignmentsForTopics(topicIds, summary);
+                    appState.generatedAssignments = assignments;
+                } else {
+                    throw new Error("No topics selected. Please go back to Step 2.");
+                }
+
+                // Now display everything
+                displayAssignments();
+
+            } catch (error) {
+                console.error("Critical Generation Error:", error);
+                // Show the error message to the user
+                const errorMessageElement = getElement('error-message');
+                errorMessageElement.textContent = `The generation process failed: ${error.message}. Please check your API key, network connection, or try again.`;
+                getElement('generation-error').classList.remove('hidden');
+
+                // Clear any old assignments
+                appState.generatedSummaries = [];
+                appState.generatedAssignments = [];
+                displayAssignments(); // This will show the "no assignments" message
+                getElement('assignments-workspace').classList.add('hidden');
+            } finally {
+                getElement('generation-loading').classList.add('hidden');
+                // Re-enable buttons
+                getElement('step-4-back-to-prev').disabled = false;
+                updateButtonStates(); // This will re-check if submit should be enabled
+            }
+        }
+
+
+        // =====================================================================================================
+        // INITIALIZATION
+        // =====================================================================================================
+
+        function init() {
+            renderCards();
+
+            // Set up API Key listener (Step 1)
+            const apiKeyInput = getElement('openai-api-key');
+            const nextButtonStep1 = getElement('step-1-next');
+
+            apiKeyInput.addEventListener('input', updateButtonStates);
+            nextButtonStep1.addEventListener('click', () => showStep(2));
+            
+            // NEW: Add Enter key functionality for Step 1
+            apiKeyInput.addEventListener('keydown', (event) => {
+                if (event.key === 'Enter') {
+                    if (!nextButtonStep1.disabled) {
+                        event.preventDefault(); 
+                        nextButtonStep1.click();
+                    }
+                }
+            });
+
+            // Set up Step 2 listeners
+            getElement('step-2-back').addEventListener('click', () => showStep(1));
+            const nextButtonStep2 = getElement('step-2-next');
+            // MODIFIED: Use new handler function
+            nextButtonStep2.addEventListener('click', handleStep2Next);
+            
+            // ********** Step 2 Functionality Listeners **********
+            const customTopicInput = getElement('custom-topic-text');
+            customTopicInput.addEventListener('input', updateButtonStates);
+            getElement('select-custom-topic-btn').addEventListener('click', handleSelectCustomTopic);
+            
+            // NEW: Random topic button listener (Instruction 2)
+            getElement('select-random-topic-btn').addEventListener('click', handleSelectRandomTopic);
+
+            // Enter key shortcut for Step 2 Next button
+            document.addEventListener('keydown', (event) => {
+                // Only act on the 'Enter' key and when we are on Step 2
+                if (event.key === 'Enter' && appState.currentStep === 2) {
+                    // 1. Check if the 'Select' button is focused or the input is active
+                    if (document.activeElement === customTopicInput && !getElement('select-custom-topic-btn').disabled) {
+                         event.preventDefault();
+                         getElement('select-custom-topic-btn').click();
+                         return;
+                    }
+                    
+                    // 2. If 'Select' is not active, check the 'Next' button
+                    if (!nextButtonStep2.disabled) {
+                        event.preventDefault(); 
+                        nextButtonStep2.click(); // This will now correctly call handleStep2Next
+                    }
+                }
+            });
+
+            // Upload Topic button
+            getElement('upload-topic-btn').addEventListener('click', () => {
+                getElement('upload-topic-input').click();
+            });
+            getElement('upload-topic-input').addEventListener('change', handleUploadTopic);
+
+            // Set up Step 3 listeners
+            const slider = getElement('cefr-slider');
+            slider.addEventListener('input', (event) => updateLevel(event.target.value));
+            getElement('description-toggle-header').addEventListener('click', toggleDescription);
+            getElement('step-3-back').addEventListener('click', () => showStep(2));
+            getElement('step-3-next-generate').addEventListener('click', startGeneration);
+
+            // Set up Step 4 listeners (MODIFIED)
+            getElement('step-4-back-to-prev').addEventListener('click', () => showStep(3));
+            getElement('submit-assignments').addEventListener('click', submitAssignments);
+
+            // Set up Step 5 listeners
+            getElement('step-5-back-to-prev').addEventListener('click', () => showStep(4));
+            getElement('step-5-back-to-start').addEventListener('click', () => {
+                location.reload(); // Simplest way to restart the prototype state
+            });
+
+
+            // Initial state setup
+            updateLevel(slider.value); 
+            showStep(1); // Start at Step 1
+            updateButtonStates(); // Initial check for API Key
+        }
+
+        window.onload = init;
+    </script>
+</body>
+</html>
