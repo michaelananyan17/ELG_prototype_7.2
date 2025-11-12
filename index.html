@@ -207,7 +207,6 @@
     </style>
 </head>
 <body class="p-4 sm:p-8">
-    <!-- MODIFIED: Added id="app-container" to fix getBoundingClientRect error -->
     <div id="app-container" class="app-container">
         <div id="header-section" class="mb-8">
             <h1 class="text-3xl font-extrabold text-gray-900 mb-2 text-center">PELE Assignment Generator</h1>
@@ -291,16 +290,13 @@
                 <button id="step-2-back" class="px-6 py-3 text-gray-600 border border-gray-400 rounded-lg font-semibold hover:bg-gray-100 transition duration-150 ease-in-out">
                     ← Back to API Setup
                 </button>
-                <!-- MODIFIED: Button now includes a span for the icon -->
                 <button id="step-2-next" class="px-6 py-3 bg-indigo-600 text-white font-semibold rounded-lg shadow-md hover:bg-indigo-700 transition duration-150 ease-in-out disabled:opacity-50 flex items-center space-x-2">
                     <span>Next: Assignment Type</span>
                     <span id="step-2-next-icon" class="font-bold">→</span>
                 </button>
             </div>
 
-            <!-- REMOVED: Merge/Separate Popup -->
-
-        </div>
+            </div>
 
         <div id="step-3" class="step-content hidden">
             <h2 class="text-2xl font-bold text-gray-800 mb-6">Step 3: Format & Difficulty</h2>
@@ -366,7 +362,6 @@
                 <p class="text-gray-600 font-semibold text-lg">
                     Generating your personalized English assignments using the LLM...
                 </p>
-                <!-- NEW: Updated loading text -->
                 <p class="text-sm text-gray-500 mt-2">This may take up to 60 seconds, as we are generating topic summaries and assignments.</p>
             </div>
 
@@ -375,12 +370,9 @@
                 <p id="error-message" class="text-sm">An unknown error occurred while contacting the LLM.</p>
             </div>
 
-            <!-- This workspace will be populated by summaries AND assignments -->
             <div id="assignments-workspace">
                 </div>
 
-            <!-- REMOVED: No Assignments Message Block -->
-            
             <div id="grading-summary" class="hidden mt-8 p-6 bg-indigo-50 rounded-lg border border-indigo-200 shadow-md">
                 <h3 class="text-xl font-bold text-indigo-800">Review Summary</h3>
                 <p class="text-lg text-indigo-600 mt-1">Score on Graded Questions: <span id="current-score" class="font-extrabold text-2xl">0/0</span></p>
@@ -484,7 +476,7 @@
             { id: 'ft1', name: 'English Text Topic', type: 'WritingPrompt', icon: '📝', description: 'Generates a full prompt for an essay or a short story (Ungraded)' },
             { id: 'ft2', name: 'Grammar Practice', type: 'GrammarPractice', icon: '🧠', description: 'Generates sentences with blanks for conjunction or syntax practice' },
             { id: 'ft3', name: 'Vocabulary Words', type: 'VocabularyWords', icon: '📚', description: 'Generates new words with context, requiring students to use them in sentences (Ungraded)' },
-            { id: 'ft4', name: 'Multiple Choice', type: 'MultipleChoice', icon: '✅', description: 'Generates questions with four potential answers, with only one correct answer' },
+            { id: 'ft4', name: 'Multiple Choice', type: 'MultipleChoice', icon: '✅', description: 'GenerATES questions with four potential answers, with only one correct answer' },
         ];
         // *****************************************
 
@@ -1523,22 +1515,29 @@
                 ? `Topic 1 (${topicNames[0]}) has a 60% priority weight. Topic 2 (${topicNames[1]}) has a 40% priority weight.` 
                 : `Topic 1 (${topicNames[0]}) has a 100% priority weight.`;
 
+            // === START: MODIFIED SYSTEM PROMPT (PER USER REQUEST) ===
             // MODIFIED: Updated summary prompt with new two-topic relationship structure
-            const systemPrompt = `You are an expert educator and writer. Your task is to generate a single, high-quality, and informative topic summary for an English learner.
+            const systemPrompt = `You are an expert educator and creative writer. Your task is to generate a single, high-quality, and informative topic summary for an English learner.
             - The summary MUST be between 200 and 300 words.
             - The summary MUST be written at the specified CEFR level (${level}). Use vocabulary and sentence structures appropriate for ${level} learners.
             - You MUST return ONLY the raw text of the summary.
             - Do NOT include any titles, headers, markdown, or any text other than the summary itself.
             - Do NOT return JSON.
             
-            CRITICAL STRUCTURE FOR TWO TOPICS:
-            If there are two topics, structure the summary as follows:
-            1. Briefly introduce both topics and their core concepts
-            2. Factually state whether these topics have any direct relationship or not
-            3. If they have a relationship: Explore this relationship in depth, showing how they connect
-            4. If they have no direct relationship: Look for indirect connections or create a creative hypothetical relationship
-            5. Ensure the topics are related from the beginning, not just mentioned separately
+            CRITICAL STRUCTURE (ESPECIALLY FOR TWO TOPICS):
+            - If one topic is provided, create a clear summary of it.
+            - If two topics are provided, you MUST weave them together into a single, cohesive "story" or narrative. Do NOT just list them.
+            - Start by very briefly introducing each topic's core idea (one sentence each).
+            - Then, immediately begin to merge and connect them.
+            - Your main task is to find or create a relationship between them.
+            
+            1.  **Analyze the Relationship:** First, determine if the topics have a realistic, factual relationship.
+            2.  **Realistic Story:** If they DO have a factual connection (e.g., "AI & ML" and "Cybersecurity"), create the summary "story" about this real-world relationship.
+            3.  **Creative Story:** If they do NOT have an obvious factual connection (e.g., "Quantum Physics" and "Shakespeare"), you MUST get creative. Invent a hypothetical or metaphorical relationship. Create a "story" that links them in a compelling, imaginative way. You can state that this is a creative or "fantasy" connection if it helps the narrative.
+            
+            - The goal is a single, merged summary, not two separate ones.
             `;
+            // === END: MODIFIED SYSTEM PROMPT ===
             
             const userQuery = `
                 Generate the topic summary now.
