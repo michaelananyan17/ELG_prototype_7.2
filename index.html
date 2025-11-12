@@ -450,7 +450,11 @@
             uploadedTopic: null, // Stores { id: 'uploaded', name: 'File Name', content: '...' }
         };
 
+        // ==========================================================================================
+        // === START: MODIFIED TOPIC_POOL_DATA (36 NEW CARDS ADDED) ===
+        // ==========================================================================================
         const TOPIC_POOL_DATA = [
+            // Original 14
             { id: 1, name: 'AI & ML', icon: '🤖', category: 'Technology' },
             { id: 2, name: 'Climate Change', icon: '🌍', category: 'Science' },
             { id: 3, name: 'Quantum Physics', icon: '⚛️', category: 'Science' },
@@ -464,8 +468,71 @@
             { id: 11, name: 'Space Exploration', icon: '🚀', category: 'Science' },
             { id: 12, name: 'Philosophy', icon: '🧠', category: 'Literature' },
             { id: 13, name: 'Renewable Energy', icon: '💡', category: 'Technology' },
-            { id: 14, name: 'Economic History', icon: '💰', category: 'History' }
+            { id: 14, name: 'Economic History', icon: '💰', category: 'History' },
+
+            // NEW: Category 5: Health & Fitness (3 cards)
+            { id: 15, name: 'Nutrition & Diet', icon: '🍎', category: 'Health & Fitness' },
+            { id: 16, name: 'Mental Wellness', icon: '🧘', category: 'Health & Fitness' },
+            { id: 17, name: 'Exercise Science', icon: '🏃', category: 'Health & Fitness' },
+            
+            // NEW: Category 6: Philosophy (3 cards)
+            { id: 18, name: 'Stoicism', icon: '🗿', category: 'Philosophy' },
+            { id: 19, name: 'Existentialism', icon: '🤔', category: 'Philosophy' },
+            { id: 20, name: 'Ethical Dilemmas', icon: '⚖️', category: 'Philosophy' },
+
+            // NEW: Category 7: Music (3 cards)
+            { id: 21, name: 'Music Theory', icon: '🎵', category: 'Music' },
+            { id: 22, name: 'History of Jazz', icon: '🎷', category: 'Music' },
+            { id: 23, name: 'Modern Pop Culture', icon: '🎤', category: 'Music' },
+
+            // NEW: Category 8: Cinema (3 cards)
+            { id: 24, name: 'Film Noir', icon: '🎬', category: 'Cinema' },
+            { id: 25, name: 'Special Effects (CGI)', icon: '💥', category: 'Cinema' },
+            { id: 26, name: 'Screenwriting', icon: '✍️', category: 'Cinema' },
+
+            // NEW: Category 9: Geography (3 cards)
+            { id: 27, name: 'Volcanoes', icon: '🌋', category: 'Geography' },
+            { id: 28, name: 'Major River Systems', icon: '🏞️', category: 'Geography' },
+            { id: 29, name: 'Urban Planning', icon: '🏙️', category: 'Geography' },
+
+            // NEW: Category 10: Business (3 cards)
+            { id: 30, name: 'Marketing 101', icon: '📈', category: 'Business' },
+            { id: 31, name: 'Start-up Culture', icon: '💡', category: 'Business' },
+            { id: 32, name: 'Corporate Ethics', icon: '🤝', category: 'Business' },
+
+            // NEW: Category 11: Economics (3 cards)
+            { id: 33, name: 'Supply and Demand', icon: '📉', category: 'Economics' },
+            { id: 34, name: 'Global Trade', icon: '🌐', category: 'Economics' },
+            { id: 35, name: 'Cryptocurrency', icon: '₿', category: 'Economics' },
+
+            // NEW: Category 12: Crime (3 cards)
+            { id: 36, name: 'Forensic Science', icon: '🧬', category: 'Crime' },
+            { id: 37, name: 'True Crime Stories', icon: '🕵️', category: 'Crime' },
+            { id: 38, name: 'Criminology', icon: '👮', category: 'Crime' },
+
+            // NEW: Category 13: Entertainment (3 cards)
+            { id: 39, name: 'The Video Game Industry', icon: '🎮', category: 'Entertainment' },
+            { id: 40, name: 'Social Media Trends', icon: '📱', category: 'Entertainment' },
+            { id: 41, name: 'Reality Television', icon: '📺', category: 'Entertainment' },
+
+            // NEW: Category 14: Psychology (3 cards)
+            { id: 42, name: 'Cognitive Biases', icon: '🧠', category: 'Psychology' },
+            { id: 43, name: 'Child Development', icon: '👶', category: 'Psychology' },
+            { id: 44, name: 'Social Psychology', icon: '👨‍👩‍👧‍👦', category: 'Psychology' },
+
+            // NEW: Category 15: Fashion (3 cards)
+            { id: 45, name: 'Sustainable Fashion', icon: '♻️', category: 'Fashion' },
+            { id: 46, name: 'Fashion History', icon: '👗', category: 'Fashion' },
+            { id: 47, name: 'Haute Couture', icon: '👠', category: 'Fashion' },
+
+            // NEW: Category 16: Industry (3 cards)
+            { id: 48, name: 'The Automotive Industry', icon: '🚗', category: 'Industry' },
+            { id: 49, name: 'Pharmaceuticals', icon: '💊', category: 'Industry' },
+            { id: 50, name: 'The Tech Industry', icon: '💻', category: 'Industry' }
         ];
+        // ==========================================================================================
+        // === END: MODIFIED TOPIC_POOL_DATA ===
+        // ==========================================================================================
         
         // This pool will be updated with custom/uploaded topics
         let TOPIC_POOL = [...TOPIC_POOL_DATA];
